@@ -1,19 +1,20 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
-
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import sys
+import os
+
+# Add backend to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/")
+@app.route("/api")
 def home():
-    return jsonify({"message": "API is running"})
+    return jsonify({"message": "API working"})
 
 @app.route("/api/stock-data")
-def stock_data():
+def stock():
     try:
         from services.data_service import get_stock_data_json
         start = request.args.get("start")
@@ -23,7 +24,7 @@ def stock_data():
             return jsonify({"success": False, "data": {"dates": [], "open": [], "high": [], "low": [], "close": [], "volume": [], "records": []}, "message": data.get("message", "No data available")})
         return jsonify({"success": True, "data": data, "count": len(data.get("dates", []))})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return jsonify({"success": False, "error": str(e), "data": {"dates": [], "open": [], "high": [], "low": [], "close": [], "volume": [], "records": []}})
 
 @app.route("/api/realtime")
 def realtime():
@@ -32,8 +33,7 @@ def realtime():
         data = get_realtime_price()
         return jsonify({"success": True, "data": data})
     except Exception as e:
-        fallback = {"symbol": "TSLA", "price": 449.72, "change": 0.00, "changePercent": 0.00, "previousClose": 449.72, "status": "fallback"}
-        return jsonify({"success": True, "data": fallback})
+        return jsonify({"success": True, "data": {"symbol": "TSLA", "price": 449.72, "change": 0.00, "changePercent": 0.00, "previousClose": 449.72, "status": "fallback"}})
 
 @app.route("/api/eda")
 def eda():
@@ -50,5 +50,6 @@ def eda():
 def health():
     return jsonify({"status": "ok", "service": "TeslaPulse API"})
 
+# REQUIRED FOR VERCEL
 def handler(request):
     return app(request)
