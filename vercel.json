@@ -1,6 +1,4 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "outputDirectory": "frontend/dist",
   "routes": [
     {
       "src": "/api/(.*)",
@@ -8,7 +6,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/dist/$1"
+      "dest": "/frontend/dist/index.html"
     }
   ]
 }
