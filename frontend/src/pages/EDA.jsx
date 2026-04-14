@@ -17,13 +17,16 @@ export default function EDA() {
     setError(null);
     try {
       const res = await fetchEDA(start, end);
-      if (res.success) {
+      if (res.success && res.data) {
         setEdaData(res.data);
       } else {
-        setError(res.error);
+        setError(res.error || res.message || 'Failed to fetch EDA data');
+        setEdaData(null);
       }
     } catch (e) {
-      setError(e.message);
+      console.error('EDA load error:', e);
+      setError(e.message || 'Failed to load EDA data');
+      setEdaData(null);
     }
     setLoading(false);
   };
@@ -47,16 +50,20 @@ export default function EDA() {
         {/* Right Side: Content */}
         <div style={{ flex: 1 }}>
           {error && (
-            <div className="panel" style={{ color: 'var(--accent-red)' }}>
+            <div className="panel" style={{ color: 'var(--accent-red)', padding: '1.5rem' }}>
               ⚠️ {error}
             </div>
           )}
 
           {loading ? (
             <Loader message="Running exploratory data analysis..." />
-          ) : (
+          ) : edaData ? (
             <EDACharts edaData={edaData} />
-          )}
+          ) : !error ? (
+            <div className="panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              No data available. Please select a date range and click "Analyze".
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

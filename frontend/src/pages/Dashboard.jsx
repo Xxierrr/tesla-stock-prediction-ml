@@ -7,7 +7,6 @@ import RealTimePrice from '../components/RealTimePrice';
 import StockChart from '../components/StockChart';
 import DateRangeForm from '../components/DateRangeForm';
 import Loader from '../components/Loader';
-import { BarChart3, TrendingUp, DollarSign, Activity } from 'lucide-react';
 
 export default function Dashboard() {
   const [stockData, setStockData] = useState(null);
@@ -19,29 +18,46 @@ export default function Dashboard() {
     setError(null);
     try {
       const res = await fetchStockData(start, end);
-      if (res.success) {
-        setStockData(res.data);
+      if (res.success && res.data) {
+        // Handle both formats: array of records or structured format
+        const data = res.data.records || res.data;
+        if (Array.isArray(data) && data.length > 0) {
+          setStockData(data);
+        } else {
+          setError('No data available');
+          setStockData(null);
+        }
       } else {
-        setError(res.error || 'Failed to fetch data');
+        setError(res.error || res.message || 'Failed to fetch data');
+        setStockData(null);
       }
     } catch (e) {
-      setError(e.message);
+      console.error('Dashboard load error:', e);
+      setError(e.message || 'Failed to load data');
+      setStockData(null);
     }
     setLoading(false);
   };
 
   useEffect(() => { loadData(); }, []);
 
-  // Compute quick stats
-  const stats = stockData ? (() => {
-    const closes = stockData.map(d => d.Close);
-    const latest = closes[closes.length - 1];
-    const first = closes[0];
-    const max = Math.max(...closes);
-    const min = Math.min(...closes);
-    const totalVol = stockData.reduce((s, d) => s + d.Volume, 0);
-    const change = ((latest - first) / first * 100);
-    return { latest, max, min, totalVol, change, count: stockData.length };
+  // Compute quick stats safely
+  const stats = stockData && stockData.length > 0 ? (() => {
+    try {
+      const closes = stockData.map(d => d.Close).filter(v => v != null);
+      if (closes.length === 0) return null;
+      
+      const latest = closes[closes.length - 1];
+      const first = closes[0];
+      const max = Math.max(...closes);
+      const min = Math.min(...closes);
+      const totalVol = stockData.reduce((s, d) => s + (d.Volume || 0), 0);
+      const change = first !== 0 ? ((latest - first) / first * 100) : 0;
+      return { latest, max, min, totalVol, change, count: stockData.length };
+    } catch (e) {
+      console.error('Stats calculation error:', e);
+      return null;
+    }
   })() : null;
 
   return (
@@ -65,14 +81,14 @@ export default function Dashboard() {
         {/* Right Side: Content */}
         <div style={{ flex: 1 }}>
           {error && (
-            <div className="panel" style={{ color: 'var(--accent-red)' }}>
+            <div className="panel" style={{ color: 'var(--accent-red)', padding: '1.5rem' }}>
               ⚠️ {error}
             </div>
           )}
 
           {loading ? (
             <Loader message="Fetching Tesla stock data..." />
-          ) : stockData ? (
+          ) : stockData && stockData.length > 0 && stats ? (
             <>
               {/* Quick Stats */}
               <div className="grid-4" style={{ marginBottom: '1.5rem' }}>
@@ -102,6 +118,10 @@ export default function Dashboard() {
                 <StockChart data={stockData} title="" />
               </div>
             </>
+          ) : !loading && !error ? (
+            <div className="panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              No data available. Please select a date range and click "Load Data".
+            </div>
           ) : null}
         </div>
       </div>
