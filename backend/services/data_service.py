@@ -15,8 +15,16 @@ def get_stock_data(start_date=None, end_date=None, force_refresh=False):
         pd.DataFrame with columns: Date, Open, High, Low, Close, Volume
     """
     try:
+        from datetime import datetime
+        
         start = start_date or DEFAULT_START_DATE
         end = end_date or DEFAULT_END_DATE
+        
+        # Validate and cap end date to today
+        today = datetime.now().strftime("%Y-%m-%d")
+        if end > today:
+            print(f"End date {end} is in the future, capping to today {today}")
+            end = today
         
         cache_file = os.path.join(DATA_DIR, f"{TICKER}_{start}_{end}.csv")
         
@@ -25,17 +33,22 @@ def get_stock_data(start_date=None, end_date=None, force_refresh=False):
             try:
                 df = pd.read_csv(cache_file, parse_dates=["Date"])
                 if not df.empty:
+                    print(f"Loaded {len(df)} rows from cache")
                     return df
             except Exception as e:
                 print(f"Cache read failed: {e}")
         
         # Download from Yahoo Finance
+        print(f"Fetching TSLA data from {start} to {end}")
         ticker = yf.Ticker(TICKER)
         raw = ticker.history(start=start, end=end)
         
         if raw.empty:
+            print(f"No data returned from yfinance for {start} to {end}")
             # Return empty dataframe with correct structure
             return pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume"])
+        
+        print(f"Fetched {len(raw)} rows from yfinance")
         
         # Flatten multi-level columns if present
         if isinstance(raw.columns, pd.MultiIndex):
@@ -59,6 +72,8 @@ def get_stock_data(start_date=None, end_date=None, force_refresh=False):
         df = df.sort_values("Date").reset_index(drop=True)
         df = df.dropna()
         
+        print(f"Cleaned data: {len(df)} rows")
+        
         # Try to cache (may fail on Vercel read-only filesystem)
         try:
             os.makedirs(DATA_DIR, exist_ok=True)
@@ -70,6 +85,8 @@ def get_stock_data(start_date=None, end_date=None, force_refresh=False):
     
     except Exception as e:
         print(f"get_stock_data failed: {e}")
+        import traceback
+        traceback.print_exc()
         # Return empty dataframe with correct structure
         return pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume"])
 

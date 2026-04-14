@@ -6,7 +6,7 @@ import { Calendar, Play } from 'lucide-react';
 
 export default function DateRangeForm({ onSubmit, loading = false, buttonText = 'Fetch Data' }) {
   const [start, setStart] = useState('2020-01-01');
-  const [end, setEnd] = useState('2026-01-01');
+  const [end, setEnd] = useState('2024-12-31');
 
   const handleSubmit = (e) => {
     e.preventDefault();

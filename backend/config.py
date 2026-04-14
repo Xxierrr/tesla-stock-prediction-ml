@@ -7,7 +7,7 @@ TICKER = "TSLA"
 
 # Default date range (5 years of data)
 DEFAULT_START_DATE = "2020-01-01"
-DEFAULT_END_DATE = "2026-01-01"
+DEFAULT_END_DATE = "2025-01-01"  # Updated to valid date
 
 # Data paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

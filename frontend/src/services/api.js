@@ -13,11 +13,27 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Helper to format dates to YYYY-MM-DD
+const formatDate = (date) => {
+  if (!date) return null;
+  try {
+    // If already in YYYY-MM-DD format, return as is
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return date;
+    }
+    // Otherwise convert to YYYY-MM-DD
+    return new Date(date).toISOString().split('T')[0];
+  } catch (e) {
+    console.error('Date format error:', e);
+    return null;
+  }
+};
+
 // ---- Stock Data ----
 export async function fetchStockData(start, end) {
   const params = {};
-  if (start) params.start = start;
-  if (end) params.end = end;
+  if (start) params.start = formatDate(start);
+  if (end) params.end = formatDate(end);
   const { data } = await api.get('/api/stock-data', { params });
   return data;
 }
@@ -25,21 +41,28 @@ export async function fetchStockData(start, end) {
 // ---- EDA ----
 export async function fetchEDA(start, end) {
   const params = {};
-  if (start) params.start = start;
-  if (end) params.end = end;
+  if (start) params.start = formatDate(start);
+  if (end) params.end = formatDate(end);
   const { data } = await api.get('/api/eda', { params });
   return data;
 }
 
 // ---- Train Models ----
 export async function trainModels(start, end) {
-  const { data } = await api.post('/api/train', { start, end });
+  const { data } = await api.post('/api/train', { 
+    start: formatDate(start), 
+    end: formatDate(end) 
+  });
   return data;
 }
 
 // ---- Predict ----
 export async function getPredictions(model, start, end) {
-  const { data } = await api.post('/api/predict', { model, start, end });
+  const { data } = await api.post('/api/predict', { 
+    model, 
+    start: formatDate(start), 
+    end: formatDate(end) 
+  });
   return data;
 }
 
