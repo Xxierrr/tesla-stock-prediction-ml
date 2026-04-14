@@ -5,7 +5,11 @@
 
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// For Vercel deployment: use empty string to make relative API calls
+// For local development: use localhost
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '');
+
+console.log('API Base URL:', API_BASE); // For debugging
 
 const api = axios.create({
   baseURL: API_BASE,
