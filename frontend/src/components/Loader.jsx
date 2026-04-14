@@ -1,0 +1,13 @@
+/**
+ * Loader — Animated loading spinner with optional message.
+ */
+import React from 'react';
+
+export default function Loader({ message = 'Loading...' }) {
+  return (
+    <div className="loader-container">
+      <div className="spinner" />
+      <p className="loader-text">{message}</p>
+    </div>
+  );
+}
