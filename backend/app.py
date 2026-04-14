@@ -40,13 +40,56 @@ def health():
     return jsonify({"status": "ok", "service": "TeslaPulse API"})
 
 @app.route("/api/stock-data", methods=["GET"])
-@safe_route()
 def stock_data():
-    from services.data_service import get_stock_data_json
-    start = request.args.get("start")
-    end = request.args.get("end")
-    data = get_stock_data_json(start, end)
-    return jsonify({"success": True, "data": data, "count": len(data)})
+    """Fetch historical TSLA data with fallback."""
+    try:
+        from services.data_service import get_stock_data_json
+        start = request.args.get("start")
+        end = request.args.get("end")
+        
+        data = get_stock_data_json(start, end)
+        
+        # Check if data fetch failed
+        if "error" in data or not data.get("dates"):
+            return jsonify({
+                "success": False,
+                "data": {
+                    "dates": [],
+                    "open": [],
+                    "high": [],
+                    "low": [],
+                    "close": [],
+                    "volume": [],
+                    "records": []
+                },
+                "message": data.get("message", "No data available"),
+                "note": "Using fallback empty dataset"
+            })
+        
+        return jsonify({
+            "success": True,
+            "data": data,
+            "count": len(data.get("dates", []))
+        })
+    
+    except Exception as e:
+        print(f"stock_data endpoint failed: {str(e)}")
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "data": {
+                "dates": [],
+                "open": [],
+                "high": [],
+                "low": [],
+                "close": [],
+                "volume": [],
+                "records": []
+            },
+            "error": "Something went wrong",
+            "details": str(e),
+            "message": "Failed to load stock data"
+        }), 500
 
 @app.route("/api/eda", methods=["GET"])
 @safe_route()

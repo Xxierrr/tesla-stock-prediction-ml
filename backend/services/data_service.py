@@ -14,48 +14,64 @@ def get_stock_data(start_date=None, end_date=None, force_refresh=False):
     Returns:
         pd.DataFrame with columns: Date, Open, High, Low, Close, Volume
     """
-    start = start_date or DEFAULT_START_DATE
-    end = end_date or DEFAULT_END_DATE
-    
-    cache_file = os.path.join(DATA_DIR, f"{TICKER}_{start}_{end}.csv")
-    
-    if not force_refresh and os.path.exists(cache_file):
-        df = pd.read_csv(cache_file, parse_dates=["Date"])
+    try:
+        start = start_date or DEFAULT_START_DATE
+        end = end_date or DEFAULT_END_DATE
+        
+        cache_file = os.path.join(DATA_DIR, f"{TICKER}_{start}_{end}.csv")
+        
+        # Try cache first
+        if not force_refresh and os.path.exists(cache_file):
+            try:
+                df = pd.read_csv(cache_file, parse_dates=["Date"])
+                if not df.empty:
+                    return df
+            except Exception as e:
+                print(f"Cache read failed: {e}")
+        
+        # Download from Yahoo Finance
+        ticker = yf.Ticker(TICKER)
+        raw = ticker.history(start=start, end=end)
+        
+        if raw.empty:
+            # Return empty dataframe with correct structure
+            return pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume"])
+        
+        # Flatten multi-level columns if present
+        if isinstance(raw.columns, pd.MultiIndex):
+            raw.columns = raw.columns.get_level_values(0)
+        
+        # Reset index to get Date as a column
+        df = raw.reset_index()
+        
+        # Ensure standard column names
+        df = df.rename(columns={
+            "Adj Close": "Adj_Close"
+        })
+        
+        # Keep only needed columns
+        keep_cols = ["Date", "Open", "High", "Low", "Close", "Volume"]
+        available = [c for c in keep_cols if c in df.columns]
+        df = df[available].copy()
+        
+        # Clean
+        df["Date"] = pd.to_datetime(df["Date"])
+        df = df.sort_values("Date").reset_index(drop=True)
+        df = df.dropna()
+        
+        # Try to cache (may fail on Vercel read-only filesystem)
+        try:
+            os.makedirs(DATA_DIR, exist_ok=True)
+            df.to_csv(cache_file, index=False)
+        except Exception as e:
+            print(f"Cache write failed (expected on Vercel): {e}")
+        
         return df
     
-    # Download from Yahoo Finance
-    raw = yf.download(TICKER, start=start, end=end, progress=False)
-    
-    if raw.empty:
-        raise ValueError(f"No data returned for {TICKER} between {start} and {end}")
-    
-    # Flatten multi-level columns if present
-    if isinstance(raw.columns, pd.MultiIndex):
-        raw.columns = raw.columns.get_level_values(0)
-    
-    # Reset index to get Date as a column
-    df = raw.reset_index()
-    
-    # Ensure standard column names
-    df = df.rename(columns={
-        "Adj Close": "Adj_Close"
-    })
-    
-    # Keep only needed columns
-    keep_cols = ["Date", "Open", "High", "Low", "Close", "Volume"]
-    available = [c for c in keep_cols if c in df.columns]
-    df = df[available].copy()
-    
-    # Clean
-    df["Date"] = pd.to_datetime(df["Date"])
-    df = df.sort_values("Date").reset_index(drop=True)
-    df = df.dropna()
-    
-    # Cache
-    os.makedirs(DATA_DIR, exist_ok=True)
-    df.to_csv(cache_file, index=False)
-    
-    return df
+    except Exception as e:
+        print(f"get_stock_data failed: {e}")
+        # Return empty dataframe with correct structure
+        return pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume"])
 
 
 def get_realtime_price():
@@ -91,8 +107,49 @@ def get_realtime_price():
 
 
 def get_stock_data_json(start_date=None, end_date=None):
-    """Return stock data as JSON-serializable dict."""
-    df = get_stock_data(start_date, end_date)
-    df_out = df.copy()
-    df_out["Date"] = df_out["Date"].dt.strftime("%Y-%m-%d")
-    return df_out.to_dict(orient="records")
+    """Return stock data as JSON-serializable dict with fallback."""
+    try:
+        df = get_stock_data(start_date, end_date)
+        
+        if df.empty:
+            return {
+                "dates": [],
+                "open": [],
+                "high": [],
+                "low": [],
+                "close": [],
+                "volume": [],
+                "message": "No data available"
+            }
+        
+        df_out = df.copy()
+        df_out["Date"] = df_out["Date"].dt.strftime("%Y-%m-%d")
+        
+        # Return structured format
+        result = {
+            "dates": df_out["Date"].tolist(),
+            "close": df_out["Close"].tolist() if "Close" in df_out.columns else [],
+            "open": df_out["Open"].tolist() if "Open" in df_out.columns else [],
+            "high": df_out["High"].tolist() if "High" in df_out.columns else [],
+            "low": df_out["Low"].tolist() if "Low" in df_out.columns else [],
+            "volume": df_out["Volume"].tolist() if "Volume" in df_out.columns else [],
+        }
+        
+        # Also include records format for compatibility
+        result["records"] = df_out.to_dict(orient="records")
+        
+        return result
+    
+    except Exception as e:
+        print(f"get_stock_data_json failed: {e}")
+        return {
+            "dates": [],
+            "open": [],
+            "high": [],
+            "low": [],
+            "close": [],
+            "volume": [],
+            "records": [],
+            "error": str(e),
+            "message": "Failed to fetch data"
+        }
