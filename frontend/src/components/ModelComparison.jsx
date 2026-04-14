@@ -6,46 +6,51 @@ import Plot from './Plot';
 import { Trophy, Clock } from 'lucide-react';
 
 export default function ModelComparison({ results }) {
-  if (!results || !results.comparison) return null;
+  if (!results || typeof results !== 'object' || !results.comparison) {
+    return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No comparison data available</div>;
+  }
 
-  const { models, best_model } = results.comparison;
-  const modelColors = {
-    'Linear Regression': '#3b82f6',
-    'Random Forest': '#10b981',
-    'LSTM (Deep Learning)': '#8b5cf6',
-  };
+  try {
+    const { models, best_model } = results.comparison;
+    if (!Array.isArray(models) || models.length === 0) {
+      return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No models to compare</div>;
+    }
 
-  // Bar chart comparing metrics
-  const metricNames = ['RMSE', 'MAE', 'R²', 'MAPE'];
-  const metricKeys = ['rmse', 'mae', 'r2', 'mape'];
+    const modelColors = {
+      'Linear Regression': '#3b82f6',
+      'Random Forest': '#10b981',
+      'LSTM (Deep Learning)': '#8b5cf6',
+    };
 
-  const barTraces = models.map(m => ({
-    type: 'bar',
-    name: m.name,
-    x: metricNames,
-    y: metricKeys.map(k => m[k] || 0),
-    marker: { color: modelColors[m.name] || '#64748b', borderRadius: 4 },
-    text: metricKeys.map(k => (m[k] || 0).toFixed(3)),
-    textposition: 'outside',
-    textfont: { size: 10, color: '#4b5563' },
-  }));
+    const metricNames = ['RMSE', 'MAE', 'R²', 'MAPE'];
+    const metricKeys = ['rmse', 'mae', 'r2', 'mape'];
 
-  const barLayout = {
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: 'transparent',
-    font: { family: 'Inter, sans-serif', color: '#4b5563', size: 12 },
-    margin: { t: 30, r: 20, b: 50, l: 50 },
-    barmode: 'group',
-    xaxis: { gridcolor: '#f3f4f6' },
-    yaxis: { gridcolor: '#f3f4f6', title: 'Score' },
-    legend: { orientation: 'h', yanchor: 'bottom', y: 1.02 },
-    bargap: 0.3,
-  };
+    const barTraces = models.map(m => ({
+      type: 'bar',
+      name: m.name || 'Unknown',
+      x: metricNames,
+      y: metricKeys.map(k => m[k] || 0),
+      marker: { color: modelColors[m.name] || '#64748b', borderRadius: 4 },
+      text: metricKeys.map(k => (m[k] || 0).toFixed(3)),
+      textposition: 'outside',
+      textfont: { size: 10, color: '#4b5563' },
+    }));
 
-  return (
-    <div>
-      {/* Winner badge */}
-      {best_model && (
+    const barLayout = {
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+      font: { family: 'Inter, sans-serif', color: '#4b5563', size: 12 },
+      margin: { t: 30, r: 20, b: 50, l: 50 },
+      barmode: 'group',
+      xaxis: { gridcolor: '#f3f4f6' },
+      yaxis: { gridcolor: '#f3f4f6', title: 'Score' },
+      legend: { orientation: 'h', yanchor: 'bottom', y: 1.02 },
+      bargap: 0.3,
+    };
+
+    return (
+      <div>
+        {best_model && (
         <div className="glass-card" style={{
           display: 'flex',
           alignItems: 'center',
@@ -86,19 +91,18 @@ export default function ModelComparison({ results }) {
             {models.map((m, i) => (
               <tr key={i}>
                 <td>
-                  <span className={`model-tag ${m.name.includes('Linear') ? 'lr' : m.name.includes('Random') ? 'rf' : 'lstm'}`}>
-                    {m.name}
+                  <span className={`model-tag ${m.name && m.name.includes('Linear') ? 'lr' : m.name && m.name.includes('Random') ? 'rf' : 'lstm'}`}>
+                    {m.name || 'Unknown'}
                   </span>
                 </td>
-                <td className="mono">{m.rmse.toFixed(4)}</td>
-                <td className="mono">{m.mae.toFixed(4)}</td>
-                <td className="mono" style={{ color: m.r2 >= 0.8 ? 'var(--accent-green)' : m.r2 >= 0.5 ? 'var(--accent-amber)' : 'var(--accent-red)' }}>
-                  {m.r2.toFixed(4)}
-                </td>
+                <td className="mono">{(m.rmse || 0).toFixed(4)}</td>
+                <td className="mono">{(m.mae || 0).toFixed(4)}</td>
+                <td className="mono" style={{ color: (m.r2 || 0) >= 0.8 ? 'var(--accent-green)' : (m.r2 || 0) >= 0.5 ? 'var(--accent-amber)' : 'var(--accent-red)' }}>
+                  {(m.r2 || 0).toFixed(4)}</td>
                 <td className="mono">{m.mape ? m.mape.toFixed(2) + '%' : 'N/A'}</td>
                 <td className="mono" style={{ color: 'var(--text-muted)' }}>
                   <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
-                  {m.training_time}s
+                  {m.training_time || 0}s
                 </td>
                 <td>
                   {m.name === best_model ? (
@@ -138,12 +142,12 @@ export default function ModelComparison({ results }) {
             <tbody>
               {['linear_regression', 'random_forest', 'lstm'].map(key => {
                 const m = results[key];
-                if (!m?.kfold_scores) return null;
-                const scores = m.kfold_scores.map(s => s.r2);
-                const mean = scores.reduce((a,b) => a+b, 0) / scores.length;
+                if (!m || !Array.isArray(m.kfold_scores)) return null;
+                const scores = m.kfold_scores.map(s => s.r2 || 0);
+                const mean = scores.length > 0 ? scores.reduce((a,b) => a+b, 0) / scores.length : 0;
                 return (
                   <tr key={key}>
-                    <td><span className={`model-tag ${key === 'linear_regression' ? 'lr' : key === 'random_forest' ? 'rf' : 'lstm'}`}>{m.model_name}</span></td>
+                    <td><span className={`model-tag ${key === 'linear_regression' ? 'lr' : key === 'random_forest' ? 'rf' : 'lstm'}`}>{m.model_name || key}</span></td>
                     {scores.map((s, i) => <td key={i} className="mono">{s.toFixed(4)}</td>)}
                     <td className="mono" style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>{mean.toFixed(4)}</td>
                   </tr>
@@ -153,6 +157,10 @@ export default function ModelComparison({ results }) {
           </table>
         </div>
       )}
-    </div>
-  );
+      </div>
+    );
+  } catch (error) {
+    console.error('ModelComparison error:', error);
+    return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--accent-red)' }}>Error rendering model comparison</div>;
+  }
 }

@@ -16,7 +16,7 @@ export default function RealTimePrice({ compact = false }) {
     const fetch = async () => {
       try {
         const res = await getRealtimePrice();
-        if (mounted && res.success) {
+        if (mounted && res && res.success && res.data) {
           if (prevPrice.current && prevPrice.current !== res.data.price) {
             setFlash(true);
             setTimeout(() => setFlash(false), 600);
@@ -26,6 +26,10 @@ export default function RealTimePrice({ compact = false }) {
         }
       } catch (e) {
         console.error('Realtime price error:', e);
+        // Set fallback price on error
+        if (mounted && !price) {
+          setPrice({ symbol: 'TSLA', price: 449.72, change: 0, changePercent: 0, previousClose: 449.72, status: 'fallback' });
+        }
       }
     };
 
@@ -43,15 +47,15 @@ export default function RealTimePrice({ compact = false }) {
     );
   }
 
-  const isUp = price.change >= 0;
+  const isUp = (price.change || 0) >= 0;
 
   if (compact) {
     return (
       <div className="price-badge" style={flash ? { animation: 'priceFlash 0.6s ease' } : {}}>
         <div className="price-dot" style={{ background: isUp ? 'var(--accent-green)' : 'var(--accent-red)' }} />
-        <span className="price">${price.price.toFixed(2)}</span>
+        <span className="price">${(price.price || 0).toFixed(2)}</span>
         <span className={`change ${isUp ? 'up' : 'down'}`}>
-          {isUp ? '+' : ''}{price.changePercent.toFixed(2)}%
+          {isUp ? '+' : ''}{(price.changePercent || 0).toFixed(2)}%
         </span>
       </div>
     );
@@ -69,7 +73,7 @@ export default function RealTimePrice({ compact = false }) {
             fontFamily: 'var(--font-mono)',
             ...(flash ? { animation: 'priceFlash 0.6s ease' } : {})
           }}>
-            ${price.price.toFixed(2)}
+            ${(price.price || 0).toFixed(2)}
           </div>
         </div>
       </div>
@@ -86,7 +90,7 @@ export default function RealTimePrice({ compact = false }) {
         fontFamily: 'var(--font-mono)'
       }}>
         {isUp ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-        {isUp ? '+' : ''}{price.change.toFixed(2)} ({isUp ? '+' : ''}{price.changePercent.toFixed(2)}%)
+        {isUp ? '+' : ''}{(price.change || 0).toFixed(2)} ({isUp ? '+' : ''}{(price.changePercent || 0).toFixed(2)}%)
       </div>
     </div>
   );

@@ -21,13 +21,16 @@ export default function Predictions() {
     setError(null);
     try {
       const res = await trainModels(start, end);
-      if (res.success) {
+      if (res.success && res.data) {
         setResults(res.data);
       } else {
-        setError(res.error);
+        setError(res.error || res.message || 'Failed to train models');
+        setResults(null);
       }
     } catch (e) {
-      setError(e.message);
+      console.error('Train error:', e);
+      setError(e.message || 'Failed to train models');
+      setResults(null);
     }
     setLoading(false);
   };
@@ -58,7 +61,7 @@ export default function Predictions() {
         {/* Right Side: Content */}
         <div style={{ flex: 1 }}>
           {error && (
-            <div className="panel" style={{ color: 'var(--accent-red)' }}>
+            <div className="panel" style={{ color: 'var(--accent-red)', padding: '1.5rem' }}>
               ⚠️ {error}
             </div>
           )}
