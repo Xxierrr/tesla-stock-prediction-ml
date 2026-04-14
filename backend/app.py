@@ -277,7 +277,94 @@ def prediction_history():
         return jsonify({
             "success": False,
             "error": str(e),
-            "message": "Failed to fetch prediction history"
+            "message": "Failed tYou are an expert full-stack engineer specializing in deploying Flask (Python) + React (Vite) apps on Vercel.
+
+I am getting a Vercel error:
+
+404: NOT_FOUND
+
+This happens when I open:
+
+* /
+* /api
+* /api/stock-data
+
+---
+
+### MY PROJECT STRUCTURE:
+
+root/
+api/
+index.py
+backend/
+app.py
+services/
+**init**.py
+frontend/
+dist/
+src/
+vercel.json
+
+---
+
+### PROBLEM:
+
+Vercel is not serving:
+
+* frontend (React app)
+* backend (Flask API)
+
+So all routes return 404.
+
+---
+
+### YOUR TASK:
+
+Fix EVERYTHING so that:
+
+1. `/api/*` routes go to Flask backend
+2. `/` serves React app from `/frontend/dist`
+3. No 404 errors occur
+4. Flask is properly exposed as WSGI for Vercel
+5. Python imports work correctly (`backend.app`)
+6. Routing works in Vercel (modern config only)
+7. No deprecated config like `"builds"` or `"functions"`
+
+---
+
+### REQUIREMENTS:
+
+* Use ONLY modern Vercel routing (`routes`)
+* Do NOT use `"builds"` or `"functions"`
+* Ensure `/api/index.py` works as entry point
+* Ensure frontend fallback works (`index.html`)
+* Assume Vite build already exists in `/frontend/dist`
+
+---
+
+### OUTPUT FORMAT:
+
+Return ONLY final working code for:
+
+1. vercel.json
+2. api/index.py
+3. required changes in backend/app.py
+
+No explanation. No extra text.
+
+---
+
+### EXPECTED RESULT:
+
+After deployment, these must work:
+
+* https://my-app.vercel.app/
+* https://my-app.vercel.app/api
+* https://my-app.vercel.app/api/stock-data
+* https://my-app.vercel.app/api/realtime
+
+Frontend should load and API should return data.
+o fetch prediction history"
         }), 200
 
 # DO NOT include app.run() for Vercel serverless
