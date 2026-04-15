@@ -142,3 +142,12 @@ def compare_models():
 @app.route("/api/predictions/history")
 def prediction_history():
     return jsonify({"success": True, "data": []}), 200
+
+# Export app for Vercel
+# Vercel will automatically detect this as a WSGI app
+if __name__ != "__main__":
+    # Production mode (Vercel)
+    application = app
+else:
+    # Development mode
+    app.run(debug=True)
