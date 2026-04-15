@@ -1,12 +1,16 @@
+"""
+Vercel Serverless Entry Point
+Routes all /api/* requests to Flask backend app.
+"""
 import sys
 import os
 
-# Add backend to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
+# Add backend directory to Python path so imports work
+backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'backend')
+sys.path.insert(0, backend_dir)
 
-# Import Flask app
+# Import Flask app - Vercel auto-detects this as a WSGI app
 from app import app
 
-# Vercel serverless handler
-def handler(environ, start_response):
-    return app(environ, start_response)
+# Vercel needs the app variable exported at module level
+# It will automatically use it as the WSGI handler
