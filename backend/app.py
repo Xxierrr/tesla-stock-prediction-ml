@@ -280,5 +280,6 @@ def prediction_history():
             "message": "Failed to fetch prediction history"
         }), 200
 
-# DO NOT include app.run() for Vercel serverless
-# Vercel will handle running the app
+# For local development
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)

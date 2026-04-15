@@ -34,6 +34,7 @@ def get_stock_data(start_date=None, end_date=None, force_refresh=False):
                 df = pd.read_csv(cache_file, parse_dates=["Date"])
                 if not df.empty:
                     print(f"Loaded {len(df)} rows from cache")
+                    df["Date"] = pd.to_datetime(df["Date"], utc=True).dt.tz_localize(None)
                     return df
             except Exception as e:
                 print(f"Cache read failed: {e}")
@@ -68,7 +69,7 @@ def get_stock_data(start_date=None, end_date=None, force_refresh=False):
         df = df[available].copy()
         
         # Clean
-        df["Date"] = pd.to_datetime(df["Date"])
+        df["Date"] = pd.to_datetime(df["Date"], utc=True).dt.tz_localize(None)
         df = df.sort_values("Date").reset_index(drop=True)
         df = df.dropna()
         
