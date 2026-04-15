@@ -19,11 +19,13 @@ def after_request(response):
     return response
 
 # Load CSV data once at startup
-DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'backend', 'data', 'TSLA_2020-01-01_2025-01-01.csv')
+DATA_PATH = os.path.join(os.path.dirname(__file__), 'Tesla Dataset.csv')
 try:
     df = pd.read_csv(DATA_PATH)
     df['Date'] = pd.to_datetime(df['Date'])
-except:
+    df = df.sort_values('Date')  # Ensure sorted by date
+except Exception as e:
+    print(f"Error loading CSV: {e}")
     df = None
 
 @app.route("/api")
